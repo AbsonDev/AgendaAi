@@ -32,10 +32,23 @@ model User {
 }
 
 model Queue {
-  id        String   @id @default(cuid())
-  name      String   // Ex: "Atendimento Geral"
-  prefix    String   @default("A") // Ex: A, B, P...
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id])
-  createdAt DateTime @default(now())
+  id            String   @id @default(cuid())
+  name          String
+  prefix        String   @default("A")
+  currentNumber Int      @default(0) // Para controlar o número da senha
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id])
+  tickets       Ticket[]
+  createdAt     DateTime @default(now())
+}
+
+model Ticket {
+  id            String   @id @default(cuid())
+  displayNumber String   // Ex: "A001"
+  status        String   @default("WAITING") // Estados: WAITING, IN_PROGRESS, DONE
+  queueId       String
+  queue         Queue    @relation(fields: [queueId], references: [id])
+  createdAt     DateTime @default(now())
+  calledAt      DateTime? // Opcional: quando a senha foi chamada
+  finishedAt    DateTime? // Opcional: quando o atendimento foi finalizado
 }
