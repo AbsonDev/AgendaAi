@@ -1,36 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
-import jwt from 'jsonwebtoken'
 
-// POST - Gerar novo ticket para a fila
+// POST - Gerar novo ticket para a fila (público)
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ queueId: string }> }
 ) {
   try {
     const { queueId } = await params
-    const token = request.cookies.get('auth-token')?.value
-
-    if (!token) {
-      return NextResponse.json({ error: 'Token não fornecido' }, { status: 401 })
-    }
-
-    const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!) as { userId: string }
-    
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-      include: { company: true }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
-    }
-
-    const queue = await prisma.queue.findFirst({
+    const queue = await prisma.queue.findUnique({
       where: { 
-        id: queueId,
-        companyId: user.companyId
+        id: queueId
+      },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     })
 
@@ -60,7 +49,11 @@ export async function POST(
       return { queue: updatedQueue, ticket: newTicket }
     })
 
-    return NextResponse.json(result.ticket)
+    return NextResponse.json({
+      ticket: result.ticket,
+      queueName: queue.name,
+      companyName: queue.company.name
+    })
   } catch (error) {
     console.error('Erro ao gerar novo ticket:', error)
     return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 })

@@ -5,9 +5,10 @@ import jwt from 'jsonwebtoken'
 // POST - Chamar próximo ticket da fila
 export async function POST(
   request: NextRequest,
-  { params }: { params: { queueId: string } }
+  { params }: { params: Promise<{ queueId: string }> }
 ) {
   try {
+    const { queueId } = await params
     const token = request.cookies.get('auth-token')?.value
 
     if (!token) {
@@ -27,7 +28,7 @@ export async function POST(
 
     const queue = await prisma.queue.findFirst({
       where: { 
-        id: params.queueId,
+        id: queueId,
         companyId: user.companyId
       }
     })
@@ -39,7 +40,7 @@ export async function POST(
     // Buscar o próximo ticket em espera
     const nextTicket = await prisma.ticket.findFirst({
       where: {
-        queueId: params.queueId,
+        queueId: queueId,
         status: 'WAITING'
       },
       orderBy: { createdAt: 'asc' }

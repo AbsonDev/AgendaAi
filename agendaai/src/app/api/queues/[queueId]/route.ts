@@ -5,9 +5,10 @@ import jwt from 'jsonwebtoken'
 // GET - Buscar dados de uma fila específica
 export async function GET(
   request: NextRequest,
-  { params }: { params: { queueId: string } }
+  { params }: { params: Promise<{ queueId: string }> }
 ) {
   try {
+    const { queueId } = await params
     const token = request.cookies.get('auth-token')?.value
 
     if (!token) {
@@ -27,7 +28,7 @@ export async function GET(
 
     const queue = await prisma.queue.findFirst({
       where: { 
-        id: params.queueId,
+        id: queueId,
         companyId: user.companyId
       }
     })
@@ -38,7 +39,7 @@ export async function GET(
 
     const waitingTickets = await prisma.ticket.findMany({
       where: {
-        queueId: params.queueId,
+        queueId: queueId,
         status: 'WAITING'
       },
       orderBy: { createdAt: 'asc' }
@@ -46,7 +47,7 @@ export async function GET(
 
     const inProgressTickets = await prisma.ticket.findMany({
       where: {
-        queueId: params.queueId,
+        queueId: queueId,
         status: 'IN_PROGRESS'
       },
       orderBy: { calledAt: 'asc' }

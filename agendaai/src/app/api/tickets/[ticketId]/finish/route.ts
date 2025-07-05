@@ -5,9 +5,10 @@ import jwt from 'jsonwebtoken'
 // POST - Finalizar ticket
 export async function POST(
   request: NextRequest,
-  { params }: { params: { ticketId: string } }
+  { params }: { params: Promise<{ ticketId: string }> }
 ) {
   try {
+    const { ticketId } = await params
     const token = request.cookies.get('auth-token')?.value
 
     if (!token) {
@@ -28,7 +29,7 @@ export async function POST(
     // Verificar se o ticket existe e pertence à empresa do usuário
     const ticket = await prisma.ticket.findFirst({
       where: {
-        id: params.ticketId,
+        id: ticketId,
         queue: {
           companyId: user.companyId
         }
@@ -48,7 +49,7 @@ export async function POST(
 
     // Atualizar o ticket para DONE
     const updatedTicket = await prisma.ticket.update({
-      where: { id: params.ticketId },
+      where: { id: ticketId },
       data: {
         status: 'DONE',
         finishedAt: new Date()

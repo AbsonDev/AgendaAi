@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { QRCodeSVG } from 'qrcode.react'
 
 interface User {
   id: string
@@ -30,6 +31,8 @@ export default function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newQueue, setNewQueue] = useState({ name: '', prefix: 'A' })
   const [creating, setCreating] = useState(false)
+  const [showQRModal, setShowQRModal] = useState(false)
+  const [selectedQueue, setSelectedQueue] = useState<Queue | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -100,6 +103,11 @@ export default function Dashboard() {
     } finally {
       setCreating(false)
     }
+  }
+
+  const handleShowQRCode = (queue: Queue) => {
+    setSelectedQueue(queue)
+    setShowQRModal(true)
   }
 
   if (loading) {
@@ -198,24 +206,37 @@ export default function Dashboard() {
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {queues.map((queue) => (
-                    <Link
+                    <div
                       key={queue.id}
-                      href={`/dashboard/queues/${queue.id}`}
                       className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition duration-300 hover:border-blue-300"
                     >
-                      <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                        {queue.name}
-                      </h4>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Prefixo: {queue.prefix}
-                      </p>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Próximo número: {queue.currentNumber + 1}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Senhas na fila: {queue._count?.tickets || 0}
-                      </p>
-                    </Link>
+                      <div className="flex justify-between items-start mb-4">
+                        <Link
+                          href={`/dashboard/queues/${queue.id}`}
+                          className="flex-1"
+                        >
+                          <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                            {queue.name}
+                          </h4>
+                          <p className="text-sm text-gray-600 mb-2">
+                            Prefixo: {queue.prefix}
+                          </p>
+                          <p className="text-sm text-gray-600 mb-2">
+                            Próximo número: {queue.currentNumber + 1}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            Senhas na fila: {queue._count?.tickets || 0}
+                          </p>
+                        </Link>
+                        <button
+                          onClick={() => handleShowQRCode(queue)}
+                          className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-md text-sm font-medium transition duration-300 ml-2"
+                          title="Gerar QR Code"
+                        >
+                          📱
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -276,6 +297,48 @@ export default function Dashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para QR Code */}
+      {showQRModal && selectedQueue && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              QR Code - {selectedQueue.name}
+            </h3>
+            <div className="text-center mb-6">
+              <div className="inline-block p-4 bg-white border-2 border-gray-200 rounded-lg">
+                <QRCodeSVG
+                  value={`${window.location.origin}/get-ticket/${selectedQueue.id}`}
+                  size={200}
+                  level="M"
+                />
+              </div>
+              <p className="text-sm text-gray-600 mt-4">
+                Clientes podem escanear este código para retirar senhas
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                URL: {window.location.origin}/get-ticket/{selectedQueue.id}
+              </p>
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowQRModal(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition duration-300"
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-300"
+              >
+                Imprimir
+              </button>
+            </div>
           </div>
         </div>
       )}
